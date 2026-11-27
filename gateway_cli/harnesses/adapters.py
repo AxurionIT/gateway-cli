@@ -21,12 +21,19 @@ class Adapter(Harness):
     def uninstall(self, home, atomic): raise NotImplementedError
 
 class OpenCode(Adapter):
-    def path(self): return Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'opencode'/'opencode.json'
+    def path(self):
+        base = Path(os.environ.get('XDG_CONFIG_HOME', Path.home()/'.config'))/'opencode'
+        json_path, jsonc_path = base/'opencode.json', base/'opencode.jsonc'
+        if json_path.exists() and jsonc_path.exists():
+            # OpenCode merges JSON first and JSONC second. Do not shadow an
+            # existing provider in the lower-precedence file.
+            providers = read_json(json_path).get('providers', {})
+            if not isinstance(providers, dict) or 'axurion' in providers:
+                raise ValueError('Provider axurion em opencode.json conflita com opencode.jsonc; nenhuma alteração aplicada.')
+        return jsonc_path if jsonc_path.exists() else json_path
     def sync(self, home, config, models, atomic):
         # OpenCode v2 custom-provider schema. The raw request body carries
         # reasoning_effort; gateway routing still requires end-to-end validation.
-        if self.path().with_suffix('.jsonc').exists():
-            raise ValueError('OpenCode usa opencode.jsonc; integração automática recusada para preservar sua configuração.')
         if not models: raise ValueError('Catálogo vazio; configuração não alterada.')
         variants = [{'id': e, 'body': {'reasoning_effort': e}} for e in EFFORTS]
         provider = {'package': '@opencode/ai/providers/openai-compatible', 'name': 'Axurion AI Gateway',

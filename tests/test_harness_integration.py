@@ -38,11 +38,51 @@ class HarnessIntegration(unittest.TestCase):
         update_provider(path,receipt,'providers',{'a':2},cli.atomic)
         doc=json.loads(path.read_text()); doc['providers']['axurion']['a']=3; path.write_text(json.dumps(doc))
         with self.assertRaises(ValueError): update_provider(path,receipt,'providers',None,cli.atomic,True)
-    def test_jsonc_is_not_overwritten(self):
-        path=HARNESSES['opencode'].path().with_suffix('.jsonc'); path.parent.mkdir(parents=True); path.write_text('// original')
+    def test_jsonc_preservation_and_idempotence(self):
+        path = HARNESSES['opencode'].path().with_suffix('.jsonc'); path.parent.mkdir(parents=True)
+        original = '{\n  // settings\n  "agents": {"keep": {}},\n  "providers": {\n    /* other */ "other": {"name": "Other"},\n  },\n}\n'
+        path.write_text(original)
+        with patch.object(cli,'request',return_value=({'data':[{'id':'astra-coding'}]},1)):
+            self.assertEqual(self.run_cli('sync','opencode'),0)
+            first = path.read_text(); self.assertIn('// settings',first); self.assertIn('/* other */',first)
+            self.assertFalse(path.with_suffix('.json').exists())
+            self.assertTrue(HARNESSES['opencode'].configured(self.home))
+            self.assertEqual(self.run_cli('sync','opencode'),0); self.assertEqual(path.read_text(),first)
+            self.assertEqual(self.run_cli('uninstall','opencode'),0)
+            self.assertIn('/* other */',path.read_text()); self.assertNotIn('"axurion"',path.read_text())
+            self.assertTrue(list(path.parent.glob('*.bak')))
+
+    def test_jsonc_sync_update_and_write_failure_recovery(self):
+        path = HARNESSES['opencode'].path().with_suffix('.jsonc'); path.parent.mkdir(parents=True)
+        path.write_text('{\n // keep\n "providers": {"other": {}},\n}')
+        adapter = HARNESSES['opencode']
+        from gateway_cli.core.model_registry import Model
+        adapter.sync(self.home, {'base_url':'https://example.org/v1'}, [Model('one', {})], cli.atomic)
+        def fail(p, content):
+            if p == path: raise OSError('injected')
+            cli.atomic(p, content)
+        with self.assertRaises(OSError):
+            adapter.sync(self.home, {'base_url':'https://example.org/v1'}, [Model('two', {})], fail)
+        adapter.sync(self.home, {'base_url':'https://example.org/v1'}, [Model('two', {})], cli.atomic)
+        self.assertTrue(adapter.configured(self.home)); self.assertIn('// keep',path.read_text()); self.assertIn('"two"',path.read_text())
+
+    def test_jsonc_wins_when_both_files_exist(self):
+        json_path = HARNESSES['opencode'].path(); json_path.parent.mkdir(parents=True)
+        json_path.write_text('{"plugins":["keep"]}')
+        jsonc_path = json_path.with_suffix('.jsonc'); jsonc_path.write_text('{//keep\n}')
+        with patch.object(cli,'request',return_value=({'data':[{'id':'astra-coding'}]},1)):
+            self.assertEqual(self.run_cli('sync','opencode'),0)
+        self.assertEqual(json_path.read_text(),'{"plugins":["keep"]}')
+        self.assertIn('axurion',jsonc_path.read_text())
+
+    def test_invalid_jsonc_and_conflicting_files_are_untouched(self):
+        path = HARNESSES['opencode'].path().with_suffix('.jsonc'); path.parent.mkdir(parents=True); path.write_text('{/*broken')
         with patch.object(cli,'request',return_value=({'data':[{'id':'astra-coding'}]},1)):
             self.assertEqual(self.run_cli('sync','opencode'),1)
-        self.assertEqual(path.read_text(),'// original')
+            self.assertEqual(path.read_text(),'{/*broken')
+            path.write_text('{}'); path.with_suffix('.json').write_text('{"providers":{"axurion":{}}}')
+            self.assertEqual(self.run_cli('sync','opencode'),1)
+            self.assertEqual(path.read_text(),'{}')
 
 class AdditionalHarnessTests(HarnessIntegration):
     def test_pi_launch_disables_unverified_thinking(self):
