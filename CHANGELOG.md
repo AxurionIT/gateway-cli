@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0-beta.2 — OpenCode JSONC compatibility
+
+- Support existing OpenCode JSONC configurations while preserving unrelated settings and comments.
+- Protect against conflicting providers, invalid configurations and interrupted updates.
+- Keep other harness integrations and session affinity experimental; see the compatibility matrix.
+
 ## 1.2.0-beta.1 — Multi-Harness Support
 
 - Added a configurable default harness and native provider configuration for OpenCode and Pi, plus isolated Claude Code launch and the existing Codex profile.
