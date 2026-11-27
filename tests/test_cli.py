@@ -79,7 +79,9 @@ class Tests(unittest.TestCase):
         with patch('gateway_cli.cli.shutil.which',return_value='/fake/codex'),patch('gateway_cli.cli.subprocess.call',return_value=0) as run:
             self.assertEqual(self.out('codex','--effort','high','--','exec','hi')[0],0); self.assertIn('model_reasoning_effort="high"',run.call_args[0][0]); self.assertNotIn('fake-key',str(run.call_args))
     def test_http_mock(self):
-        srv=ThreadingHTTPServer(('127.0.0.1',0),MockHandler); t=threading.Thread(target=srv.serve_forever,daemon=True); t.start(); MockHandler.calls.clear()
+        try: srv=ThreadingHTTPServer(('127.0.0.1',0),MockHandler)
+        except PermissionError: self.skipTest('Sandbox blocks local sockets; run HTTP integration externally')
+        t=threading.Thread(target=srv.serve_forever,daemon=True); t.start(); MockHandler.calls.clear()
         try:
             c=dict(self.c,base_url=f'http://127.0.0.1:{srv.server_port}/v1'); cli.save_config(self.home,c); cli.store_key(self.home,'file','fake-key')
             self.assertIn('astra-coding',self.out('models')[1]); self.assertEqual(self.out('status')[0],0); self.assertTrue(all(x[0]=='/v1/models' for x in MockHandler.calls))
