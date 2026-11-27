@@ -437,7 +437,7 @@ def main(argv=None):
                     match=re.search(r"__version__\s*=\s*['\"]([^'\"]+)",z.read('gateway_cli/__init__.py').decode('utf-8'))
                     if match: state['channel']=updater.channel(match.group(1))
             state.pop('available',None); state.pop('checked_at',None); atomic(home/'update.json',json.dumps(state,indent=2))
-            print(f'Pacote atualizado: {launch}'); return 0
+            print(f'Pacote atualizado: {launch} -- version: {match.group(1) if match else "unknown"}'); return 0
         if args.cmd=='setup': setup(home,args); return 0
         if args.cmd=='doctor':
             print(f'Python: {sys.version.split()[0]}\nConfiguração: {home}\nCofre disponível: {"sim" if keyring_backend() else "não"}')
