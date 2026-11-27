@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axurion-gateway-cli"
+version = "1.1.0"
+description = "Client CLI for the Axurion AI Gateway"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+secure = ["keyring>=25,<26"]
+
+[project.scripts]
+axurion = "gateway_cli.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["gateway_cli*"]
