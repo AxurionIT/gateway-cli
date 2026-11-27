@@ -369,6 +369,7 @@ def build_parser():
     p=argparse.ArgumentParser(prog='axurion',description='Axurion Gateway CLI — um perfil, vários modelos.')
     p.add_argument('--version',action='version',version=__version__); p.add_argument('--home',type=Path,help=argparse.SUPPRESS)
     p.add_argument('--model'); p.add_argument('--effort',choices=EFFORTS)
+    p.add_argument('--yolo',action='store_true',help='Ativar aprovações automáticas nativas somente nesta sessão (reduz proteções).')
     sp=p.add_subparsers(dest='cmd')
     s=sp.add_parser('setup',help='Configurar URL, chave e perfil Codex'); s.add_argument('--url'); s.add_argument('--model'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('--storage',choices=('keyring','file','env'))
     s=sp.add_parser('install',help='Instalar launcher ou integrar harness'); s.add_argument('harness',nargs='?',choices=tuple(HARNESSES)); s.add_argument('--all',action='store_true'); s.add_argument('--setup',action='store_true'); s.add_argument('--storage',choices=('keyring','file','env'))
@@ -377,13 +378,13 @@ def build_parser():
     for command in ('sync', 'uninstall'):
         s=sp.add_parser(command); s.add_argument('harness',nargs='?',choices=tuple(HARNESSES))
     for name in ('opencode', 'pi', 'claude'):
-        s=sp.add_parser(name); s.add_argument('--model'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('args',nargs=argparse.REMAINDER)
+        s=sp.add_parser(name); s.add_argument('--model',default=argparse.SUPPRESS); s.add_argument('--effort',choices=EFFORTS,default=argparse.SUPPRESS); s.add_argument('--yolo',action='store_true',default=argparse.SUPPRESS,help='Ativar aprovações automáticas nativas nesta sessão.'); s.add_argument('args',nargs=argparse.REMAINDER)
     sp.add_parser('login',help='Cadastrar ou trocar chave local'); sp.add_parser('logout',help='Remover chave armazenada'); sp.add_parser('config',help='Mostrar configuração sem segredos'); sp.add_parser('doctor',help='Diagnóstico local sem rede').add_argument('harness',nargs='?',choices=tuple(HARNESSES)); sp.add_parser('dashboard',help='Abrir painel do gateway'); sp.add_parser('profile',help='Recriar perfil Codex gerenciado'); sp.add_parser('_token',help=argparse.SUPPRESS)
     for name in ('models','status','usage'):
         s=sp.add_parser(name,help={'models':'Listar modelos sem inferência','status':'Testar autenticação/conectividade sem inferência','usage':'Mostrar consumo local e link do painel'}[name]); s.add_argument('--json',action='store_true')
         if name=='usage': s.add_argument('--server',action='store_true',help='Consultar contadores remotos com management key (opcional)')
     s=sp.add_parser('test',help='Teste de inferência explícito (consome cota)'); s.add_argument('--model'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('--yes',action='store_true'); s.add_argument('--protocol',choices=('chat','responses'),default='responses')
-    s=sp.add_parser('codex',help='Abrir Codex com perfil Axurion'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('--model'); s.add_argument('args',nargs=argparse.REMAINDER)
+    s=sp.add_parser('codex',help='Abrir Codex com perfil Axurion'); s.add_argument('--effort',choices=EFFORTS,default=argparse.SUPPRESS); s.add_argument('--model',default=argparse.SUPPRESS); s.add_argument('--yolo',action='store_true',default=argparse.SUPPRESS,help='Ativar aprovações automáticas nativas nesta sessão.'); s.add_argument('args',nargs=argparse.REMAINDER)
     s=sp.add_parser('update',help='Atualizar a CLI'); s.add_argument('package',type=Path,nargs='?')
     g=s.add_mutually_exclusive_group(); g.add_argument('--check',action='store_true'); g.add_argument('--beta',action='store_true'); g.add_argument('--version',dest='tag'); g.add_argument('--rollback',action='store_true')
     sp.add_parser('_update_check',help=argparse.SUPPRESS)
@@ -509,6 +510,18 @@ def main(argv=None):
                     failed=True; print(f'{adapter.display_name}: {e}',file=sys.stderr)
             return int(failed)
         selected = args.cmd or c.get('default_harness','opencode')
+        if selected in ('opencode','pi','claude','codex'):
+            rest=list(getattr(args,'args',[]))
+            # REMAINDER captures options after a native positional argument (e.g. resume).
+            boundary=rest.index('--') if '--' in rest else len(rest)
+            before=rest[:boundary]; yolo=args.yolo or '--yolo' in before
+            rest=[x for x in before if x != '--yolo'] + rest[boundary:]
+            if rest[:1]==['--']: rest=rest[1:]
+            if yolo and selected=='pi': raise CLIError('Pi: --yolo não é suportado; não há opção nativa equivalente verificada.')
+            flags={'opencode':'--auto','codex':'--dangerously-bypass-approvals-and-sandbox','claude':'--dangerously-skip-permissions'}
+            if yolo:
+                flag=flags[selected]
+                if flag not in rest: rest.insert(0,flag)
         if selected in ('opencode','pi','claude'):
             adapter=HARNESSES[selected]; exe=adapter.detect()
             if not exe:
@@ -516,7 +529,6 @@ def main(argv=None):
                 exe=adapter.detect()
                 if not exe: raise CLIError(f'{adapter.display_name} não encontrado; nenhum outro harness foi iniciado.')
             model=valid_model(args.model or c['model']); effort=args.effort or c['effort']
-            rest=getattr(args,'args',[]); rest=rest[1:] if rest[:1]==['--'] else rest
             if selected == 'pi':
                 if args.effort: raise CLIError('Pi: níveis de reasoning não foram verificados; omita --effort para iniciar sem thinking.')
                 print('Pi: thinking desativado; roteamento por effort não está verificado.', file=sys.stderr)
@@ -559,14 +571,18 @@ def main(argv=None):
                 ] = effort
 
                 env['OPENCODE_CONFIG_CONTENT'] = json.dumps(overrides)
+            if yolo:
+                detail={'opencode':'permissões não negadas explicitamente serão aprovadas automaticamente', 'claude':'verificações de permissão serão ignoradas'}[selected]
+                print(f'Aviso: YOLO ativo — {detail}; políticas e restrições externas permanecem aplicáveis.',file=sys.stderr)
             return subprocess.call(command,env=env)
         key=get_key(home,c)
         if selected=='codex':
             exe=shutil.which('codex')
             if not exe: raise CLIError('Codex CLI não encontrado no PATH.')
-            effort=args.effort or c['effort']; rest=getattr(args,'args',[]); rest=rest[1:] if rest[:1]==['--'] else rest
+            effort=args.effort or c['effort']
             # Prevent accidental alternate profile/provider overrides by normal options; advanced Codex flags are user's responsibility.
             if not (codex_home()/'axurion.config.toml').exists(): write_profile(home,c)
+            if yolo: print('Aviso: YOLO ativo — aprovações e sandbox do Codex desabilitados; restrições externas permanecem aplicáveis.',file=sys.stderr)
             return subprocess.call([exe,'--profile','axurion','-c',f'model_reasoning_effort="{effort}"','-m',valid_model(args.model or c['model']),*rest])
         if args.cmd in ('models','status'):
             result,ms=request(c,key,'/models'); ids=model_ids(result)

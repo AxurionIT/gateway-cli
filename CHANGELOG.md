@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.5 — Session approval controls
+
+- Add an opt-in `--yolo` flag for session-scoped native approval bypass in supported harnesses, with warnings.
+- Reject the flag for Pi, where an equivalent has not been verified.
+
 ## 1.2.0-beta.4 — Updates and OpenCode configuration
 
 - Add release update checks, verified downloads, channel selection and rollback.

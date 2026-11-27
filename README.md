@@ -1,4 +1,4 @@
-# Axurion Gateway CLI · v1.2.0-beta.4
+# Axurion Gateway CLI · v1.2.0-beta.5
 
 A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. It does not host models, modify the gateway, or include credentials. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
 
@@ -6,20 +6,20 @@ A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and
 
 Requires Python 3.11+ and OpenCode v2 for the default experience. Codex CLI 0.134.0+ is optional. Install only on authorized machines and networks.
 
-### Install via GitHub Releases (v1.2.0-beta.4)
+### Install via GitHub Releases (v1.2.0-beta.5)
 
 Install this experimental beta from its versioned release after publication. Do not run a script you have not reviewed or whose source you do not trust. The bootstrap downloads the `.pyz` and SHA-256 checksum from the same versioned release, verifies integrity, and only then installs it. The checksum is not an independent digital signature.
 
 **macOS / Linux (quick command):**
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.sh | bash
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.5/install.sh | bash
 ```
 
 Alternative for reviewing before execution:
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.sh -o install.sh
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.5/install.sh -o install.sh
 # Review the file before running it.
 bash install.sh
 ```
@@ -28,7 +28,7 @@ bash install.sh
 
 ```powershell
 $installer = Join-Path $env:TEMP 'axurion-install.ps1'
-Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.ps1' -OutFile $installer
+Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.5/install.ps1' -OutFile $installer
 # Review the file before running it.
 & $installer
 ```
@@ -183,3 +183,9 @@ OpenCode makes a separate low-effort request to generate a session title. In a s
 A verificação automática ocorre em segundo plano, no máximo uma vez a cada 24 horas, com resultado em cache; ela não instala nada e falhas de rede são silenciosas. Para desativá-la, defina `AXURION_NO_UPDATE_CHECK=1` ou adicione `"auto_check": false` ao arquivo `update.json` em `AXURION_HOME` (padrão: `~/.config/axurion`, ou `%LOCALAPPDATA%/Axurion` no Windows). O mesmo arquivo pode conter `"channel": "stable"` ou `"channel": "beta"`. Uma atualização explícita para outro canal altera essa preferência.
 
 Pacotes remotos são verificados com SHA-256 antes da instalação; o checksum vem da mesma release e não constitui assinatura independente. O pacote anterior fica em `gateway-cli.pyz.bak` no diretório de configuração. Credenciais e integrações não são modificadas. Em sistemas que não permitem substituir um arquivo em uso, a atualização falha sem remover a instalação existente.
+
+### Aprovação automática por sessão
+
+Use `axurion --yolo` para iniciar o harness padrão, ou `axurion codex --yolo`, `axurion opencode --yolo` ou `axurion claude --yolo` para escolher um. A opção também pode ser combinada com `--model`, `--effort` e argumentos nativos de retomada, por exemplo `axurion codex --yolo resume --last`. Ela vale apenas para o processo iniciado e não altera configurações permanentes.
+
+**Atenção:** no OpenCode, `--auto` aprova permissões que não tenham sido negadas explicitamente; no Codex, `--dangerously-bypass-approvals-and-sandbox` desativa aprovações e o sandbox do próprio Codex; no Claude Code, `--dangerously-skip-permissions` ignora verificações de permissão. Restrições externas e políticas administrativas continuam aplicáveis. O Pi não tem uma opção nativa equivalente verificada, portanto `--yolo` é recusado para esse harness. Sem a flag, o comportamento permanece inalterado.
