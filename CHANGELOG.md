@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0-beta.3 — OpenCode launch fix
+
+- Remove the unsupported `mini` subcommand when launching OpenCode.
+
 ## 1.2.0-beta.2 — OpenCode JSONC compatibility
 
 - Support existing OpenCode JSONC configurations while preserving unrelated settings and comments.

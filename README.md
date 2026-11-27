@@ -1,4 +1,4 @@
-# Axurion Gateway CLI · v1.2.0-beta.2
+# Axurion Gateway CLI · v1.2.0-beta.3
 
 A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. It does not host models, modify the gateway, or include credentials. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
 
@@ -6,20 +6,20 @@ A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and
 
 Requires Python 3.11+ and OpenCode v2 for the default experience. Codex CLI 0.134.0+ is optional. Install only on authorized machines and networks.
 
-### Install via GitHub Releases (v1.2.0-beta.2)
+### Install via GitHub Releases (v1.2.0-beta.3)
 
 Install this experimental beta from its versioned release after publication. Do not run a script you have not reviewed or whose source you do not trust. The bootstrap downloads the `.pyz` and SHA-256 checksum from the same versioned release, verifies integrity, and only then installs it. The checksum is not an independent digital signature.
 
 **macOS / Linux (quick command):**
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.2/install.sh | bash
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.sh | bash
 ```
 
 Alternative for reviewing before execution:
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.2/install.sh -o install.sh
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.sh -o install.sh
 # Review the file before running it.
 bash install.sh
 ```
@@ -28,7 +28,7 @@ bash install.sh
 
 ```powershell
 $installer = Join-Path $env:TEMP 'axurion-install.ps1'
-Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.2/install.ps1' -OutFile $installer
+Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.ps1' -OutFile $installer
 # Review the file before running it.
 & $installer
 ```
