@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0-beta.4 — Updates and OpenCode configuration
+
+- Add release update checks, verified downloads, channel selection and rollback.
+- Configure OpenCode model and reasoning effort through its process environment, and add the max effort option.
+
 ## 1.2.0-beta.3 — OpenCode launch fix
 
 - Remove the unsupported `mini` subcommand when launching OpenCode.

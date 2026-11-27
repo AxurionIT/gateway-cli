@@ -99,7 +99,8 @@ flowchart TD
     subgraph LEVELS["Intelligence levels"]
         MED["Default / Medium"]
         HIGH["High"]
-        MAX["Max / xHigh"]
+        xHIGH["xHigh"]
+        MAX["Max / Ultra"]
     end
 
     CODING --> LEVELS

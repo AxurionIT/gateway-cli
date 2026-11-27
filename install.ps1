@@ -1,6 +1,6 @@
 param([switch]$Offline, [switch]$NoSetup)
 $ErrorActionPreference = 'Stop'
-$Version = '1.2.0-beta.3'
+$Version = '1.2.0-beta.4'
 $Base = "https://github.com/AxurionIT/gateway-cli/releases/download/v$Version"
 $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
 if ($PythonCommand) { $Python = $PythonCommand.Source; $Prefix = @() }

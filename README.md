@@ -1,4 +1,4 @@
-# Axurion Gateway CLI · v1.2.0-beta.3
+# Axurion Gateway CLI · v1.2.0-beta.4
 
 A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. It does not host models, modify the gateway, or include credentials. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
 
@@ -6,20 +6,20 @@ A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and
 
 Requires Python 3.11+ and OpenCode v2 for the default experience. Codex CLI 0.134.0+ is optional. Install only on authorized machines and networks.
 
-### Install via GitHub Releases (v1.2.0-beta.3)
+### Install via GitHub Releases (v1.2.0-beta.4)
 
 Install this experimental beta from its versioned release after publication. Do not run a script you have not reviewed or whose source you do not trust. The bootstrap downloads the `.pyz` and SHA-256 checksum from the same versioned release, verifies integrity, and only then installs it. The checksum is not an independent digital signature.
 
 **macOS / Linux (quick command):**
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.sh | bash
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.sh | bash
 ```
 
 Alternative for reviewing before execution:
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.sh -o install.sh
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.sh -o install.sh
 # Review the file before running it.
 bash install.sh
 ```
@@ -28,7 +28,7 @@ bash install.sh
 
 ```powershell
 $installer = Join-Path $env:TEMP 'axurion-install.ps1'
-Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.3/install.ps1' -OutFile $installer
+Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.4/install.ps1' -OutFile $installer
 # Review the file before running it.
 & $installer
 ```
@@ -138,7 +138,7 @@ Session affinity depends on the gateway recognizing a native client session iden
 | `axurion codex` | Start Codex with the Axurion profile | Depending on use |
 | `axurion update path/to/gateway-cli.pyz` | Update from a trusted local package | No |
 
-`models`, `status`, and `usage` support `--json`. `setup` supports `--url`, `--model`, `--effort`, and `--storage`. Remote usage requires a separate management key, entered without echo and not persisted. Never share this key with agents; use local or private administration. The command aggregates only numeric success/failure counts, without exposing IDs that may contain secrets. The counters endpoint may not represent OAuth, all models, tokens, or quotas. The dashboard is the source for gateway metrics. `update` does not download releases or validate their cryptographic signatures: check the file's origin. For pipx installations, update through pipx instead of using `update`.
+`models`, `status`, and `usage` support `--json`. `setup` supports `--url`, `--model`, `--effort`, and `--storage`. Remote usage requires a separate management key, entered without echo and not persisted. Never share this key with agents; use local or private administration. The command aggregates only numeric success/failure counts, without exposing IDs that may contain secrets. The counters endpoint may not represent OAuth, all models, tokens, or quotas. The dashboard is the source for gateway metrics. `update` verifies downloaded release checksums, but does not validate an independent cryptographic signature. For pipx installations, update through pipx instead of using `update`.
 
 ## Credentials and security
 
@@ -159,7 +159,7 @@ python scripts/build.py
 python dist/gateway-cli.pyz --version
 ```
 
-CI is configured for Linux, macOS, and Windows (Python 3.11 and 3.13). HTTP tests use a fake loopback server. Vault dependencies and real graphical clients require testing on each platform. No real inference requests were made during development. This version does not include automatic Codex installation, automatic remote updates, or a Homebrew/Winget package. The publishing workflow is included but must be run in the actual repository.
+CI is configured for Linux, macOS, and Windows (Python 3.11 and 3.13). HTTP tests use a fake loopback server. Vault dependencies and real graphical clients require testing on each platform. No real inference requests were made during development. This version does not include automatic Codex installation or a Homebrew/Winget package. The publishing workflow is included but must be run in the actual repository.
 
 References: [Codex advanced configuration](https://learn.chatgpt.com/docs/config-file/config-advanced), [CLIProxyAPI management v8](https://github.com/router-for-me/CLIProxyAPI/blob/main/docs/management-api-v8.md), [keyring](https://keyring.readthedocs.io/en/stable/).
 
@@ -175,3 +175,11 @@ See [compatibility and external validation](docs/multi-harness.md), and the [cha
 client launch is not evidence of gateway protocol or routing compatibility.
 
 OpenCode makes a separate low-effort request to generate a session title. In a simulated test, rejecting this auxiliary request did not prevent the main high-effort answer, but actual gateway behavior and title handling are unverified. The main request retains the selected effort.
+
+### Atualização da CLI
+
+`axurion update` consulta as releases GitHub e instala a versão mais recente do canal atual; `axurion update --check` apenas verifica. Use `--beta` para a pré-release mais recente, `--version v1.2.3` para uma tag específica ou `--rollback` para restaurar o pacote anterior. Uma versão beta permanece no canal beta por padrão; a atualização normal nunca faz downgrade. `axurion update /caminho/gateway-cli.pyz` continua aceitando um pacote local confiável.
+
+A verificação automática ocorre em segundo plano, no máximo uma vez a cada 24 horas, com resultado em cache; ela não instala nada e falhas de rede são silenciosas. Para desativá-la, defina `AXURION_NO_UPDATE_CHECK=1` ou adicione `"auto_check": false` ao arquivo `update.json` em `AXURION_HOME` (padrão: `~/.config/axurion`, ou `%LOCALAPPDATA%/Axurion` no Windows). O mesmo arquivo pode conter `"channel": "stable"` ou `"channel": "beta"`. Uma atualização explícita para outro canal altera essa preferência.
+
+Pacotes remotos são verificados com SHA-256 antes da instalação; o checksum vem da mesma release e não constitui assinatura independente. O pacote anterior fica em `gateway-cli.pyz.bak` no diretório de configuração. Credenciais e integrações não são modificadas. Em sistemas que não permitem substituir um arquivo em uso, a atualização falha sem remover a instalação existente.

@@ -25,7 +25,8 @@ class HarnessIntegration(unittest.TestCase):
         d=json.loads(path.read_text()); self.assertIn('other',d['providers']); self.assertIn('keep',d['agents'])
         with patch.object(type(HARNESSES['opencode']),'detect',return_value='/bin/opencode'), patch.object(cli.subprocess,'call',return_value=0) as call:
             self.assertEqual(self.run_cli('--effort','high'),0)
-            args, kwargs=call.call_args; self.assertIn('axurion/astra-coding#high',args[0]); self.assertNotIn('test-secret',str(args)); self.assertEqual(kwargs['env']['AXURION_API_KEY'],'test-secret')
+            args, kwargs=call.call_args; self.assertNotIn('test-secret',str(args)); self.assertEqual(kwargs['env']['AXURION_API_KEY'],'test-secret')
+            config=json.loads(kwargs['env']['OPENCODE_CONFIG_CONTENT']); self.assertEqual(config['model'],'axurion/astra-coding'); self.assertEqual(config['providers']['axurion']['models']['astra-coding']['body']['reasoning_effort'],'high')
         self.assertEqual(self.run_cli('uninstall','opencode'),0)
         d=json.loads(path.read_text()); self.assertIn('other',d['providers']); self.assertNotIn('axurion',d['providers'])
     def test_conflict_and_failure_recovery(self):
@@ -158,7 +159,7 @@ class BasicFlows(HarnessIntegration):
         with patch.object(type(adapter),'detect',return_value='/bin/opencode'), patch.object(cli.sys.stdin,'isatty',return_value=True), patch('builtins.input',return_value=''), patch.object(cli,'request',return_value=({'data':[{'id':'astra-coding'}]},1)), patch.object(cli.subprocess,'call',return_value=0) as run:
             self.assertEqual(self.run_cli(),0)
             self.assertTrue(adapter.configured(self.home))
-            self.assertIn('axurion/astra-coding#medium',run.call_args.args[0])
+            config=json.loads(run.call_args.kwargs['env']['OPENCODE_CONFIG_CONTENT']); self.assertEqual(config['model'],'axurion/astra-coding'); self.assertEqual(config['providers']['axurion']['models']['astra-coding']['body']['reasoning_effort'],'medium')
     def test_setup_survives_codex_conflict(self):
         ch=Path(self.tmp.name)/'codex'; ch.mkdir(); (ch/'axurion.config.toml').write_text('unmanaged')
         with patch.object(cli,'codex_home',return_value=ch), patch.object(cli.sys.stdin,'isatty',return_value=False):

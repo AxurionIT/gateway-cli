@@ -4,7 +4,6 @@ import getpass
 import ipaddress
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -18,15 +17,17 @@ import uuid
 import warnings
 import webbrowser
 import zipfile
+from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-from . import __version__
+
+from . import __version__, updater
 from .core.model_registry import parse_catalogue
 from .harnesses import HARNESSES
 
 MARK = '# Managed by Axurion Gateway CLI'
 OLD_MARK = '# Managed by Axurion Gateway Setup'
 SERVICE = 'Axurion Gateway CLI'
-EFFORTS = ('low', 'medium', 'high', 'xhigh')
+EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')
 DEFAULT_URL = 'https://ai.axurion.com.br/v1'
 DEFAULT_MODEL = 'astra-coding'
 PROFILE = 'axurion'
@@ -383,19 +384,59 @@ def build_parser():
         if name=='usage': s.add_argument('--server',action='store_true',help='Consultar contadores remotos com management key (opcional)')
     s=sp.add_parser('test',help='Teste de inferência explícito (consome cota)'); s.add_argument('--model'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('--yes',action='store_true'); s.add_argument('--protocol',choices=('chat','responses'),default='responses')
     s=sp.add_parser('codex',help='Abrir Codex com perfil Axurion'); s.add_argument('--effort',choices=EFFORTS); s.add_argument('--model'); s.add_argument('args',nargs=argparse.REMAINDER)
-    s=sp.add_parser('update',help='Atualizar com pacote local confiável'); s.add_argument('package',type=Path)
+    s=sp.add_parser('update',help='Atualizar a CLI'); s.add_argument('package',type=Path,nargs='?')
+    g=s.add_mutually_exclusive_group(); g.add_argument('--check',action='store_true'); g.add_argument('--beta',action='store_true'); g.add_argument('--version',dest='tag'); g.add_argument('--rollback',action='store_true')
+    sp.add_parser('_update_check',help=argparse.SUPPRESS)
     return p
 
 def main(argv=None):
     args=build_parser().parse_args(argv); home=(args.home or app_home()).expanduser().resolve()
     try:
+        if args.cmd=='_update_check':
+            updater.background_worker(home,__version__,atomic); return 0
+        if args.cmd not in ('update','_token'): updater.background(home,__version__,atomic)
         if args.cmd=='install' and not args.harness and not args.all:
             _,launch=install_archive(home); print(f'Comando instalado: {launch}\nSe necessário, adicione {launch.parent} ao PATH do usuário.')
             if args.setup: setup(home,argparse.Namespace(url=None,model=None,effort=None,storage=args.storage))
             return 0
         if args.cmd=='update':
-            print('Atualize somente com um pacote de origem confiável. Nenhum download automático é realizado.')
-            _,launch=install_archive(home,args.package); print(f'Pacote atualizado: {launch}'); return 0
+            if args.package and (args.check or args.beta or args.tag or args.rollback): raise CLIError('Pacote local não pode ser combinado com opções de atualização.')
+            state=updater.read_state(home); target=home/'gateway-cli.pyz'; backup=home/'gateway-cli.pyz.bak'
+            if args.rollback:
+                if not backup.is_file(): raise CLIError('Nenhuma versão anterior disponível.')
+                data=backup.read_bytes()
+            elif args.package:
+                data=args.package.expanduser().read_bytes()
+            else:
+                selected='beta' if args.beta else updater.effective_channel(state,__version__)
+                release=updater.select_release(updater.releases(),selected,args.tag)
+                tag=release['tag_name']
+                if args.check:
+                    print(f'Atualização disponível: {tag}' if updater.version_key(tag)>updater.version_key(__version__) else f'CLI atualizada ({__version__}).'); return 0
+                if not args.tag and updater.version_key(tag)<=updater.version_key(__version__):
+                    print(f'CLI atualizada ({__version__}); nenhum downgrade automático.'); return 0
+                data=updater.package(release)
+            private_dir(home)
+            with tempfile.TemporaryDirectory(dir=home) as directory:
+                candidate=Path(directory)/'gateway-cli.pyz'; candidate.write_bytes(data)
+                previous=target.read_bytes() if target.exists() else None
+                try:
+                    with zipfile.ZipFile(candidate) as z:
+                        if z.testzip() is not None or not {'__main__.py','gateway_cli/cli.py','gateway_cli/__init__.py'}.issubset(z.namelist()): raise CLIError('Pacote Axurion inválido.')
+                except (OSError,zipfile.BadZipFile): raise CLIError('Pacote Axurion inválido.') from None
+                # Keep the last working archive before replacing it.
+                if previous is not None: atomic(backup,previous)
+                try: _,launch=install_archive(home,candidate)
+                except Exception:
+                    if previous is not None: atomic(target,previous)
+                    raise
+            if not args.package and not args.rollback: state['channel']=updater.channel(tag)
+            else:
+                with zipfile.ZipFile(target) as z:
+                    match=re.search(r"__version__\s*=\s*['\"]([^'\"]+)",z.read('gateway_cli/__init__.py').decode('utf-8'))
+                    if match: state['channel']=updater.channel(match.group(1))
+            state.pop('available',None); state.pop('checked_at',None); atomic(home/'update.json',json.dumps(state,indent=2))
+            print(f'Pacote atualizado: {launch}'); return 0
         if args.cmd=='setup': setup(home,args); return 0
         if args.cmd=='doctor':
             print(f'Python: {sys.version.split()[0]}\nConfiguração: {home}\nCofre disponível: {"sim" if keyring_backend() else "não"}')
@@ -497,6 +538,27 @@ def main(argv=None):
                 env['ANTHROPIC_BASE_URL']=adapter.base_url(c['base_url']); env['ANTHROPIC_AUTH_TOKEN']=key
                 env.pop('ANTHROPIC_API_KEY',None)
             else: env['AXURION_API_KEY']=key
+
+            if selected == 'opencode':
+                overrides = json.loads(
+                    env.get('OPENCODE_CONFIG_CONTENT') or '{}'
+                )
+
+                overrides['model'] = f'axurion/{model}'
+
+                model_config = (
+                    overrides
+                    .setdefault('providers', {})
+                    .setdefault('axurion', {})
+                    .setdefault('models', {})
+                    .setdefault(model, {})
+                )
+
+                model_config.setdefault('body', {})[
+                    'reasoning_effort'
+                ] = effort
+
+                env['OPENCODE_CONFIG_CONTENT'] = json.dumps(overrides)
             return subprocess.call(command,env=env)
         key=get_key(home,c)
         if selected=='codex':
@@ -528,6 +590,6 @@ def main(argv=None):
             u=result.get('usage') or {}; print(f'Inferência respondeu ({ms} ms); modelo virtual: {model}; reasoning: {effort}; tokens reportados: {u.get("total_tokens","indisponível")}. Confira modelo real no painel.')
             return 0
         return 2
-    except (CLIError,OSError,ValueError) as e:
+    except (CLIError,OSError,ValueError,urllib.error.URLError) as e:
         print(f'Erro: {e}',file=sys.stderr); return 1
     except (KeyboardInterrupt,EOFError): print('\nCancelado.',file=sys.stderr); return 130

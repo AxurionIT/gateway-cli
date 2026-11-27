@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "axurion-gateway-cli"
-version = "1.2.0b3"
+version = "1.2.0b4"
 description = "Client CLI for the Axurion AI Gateway"
 readme = "README.md"
 requires-python = ">=3.11"

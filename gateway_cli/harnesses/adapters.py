@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, urlunsplit
 from .base import Harness
 from .managed import digest, read_json, update_provider
 
-EFFORTS = ('low', 'medium', 'high', 'xhigh')
+EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max')
 
 class Adapter(Harness):
     def state(self, home): return home / 'harnesses' / (self.name + '.json')
@@ -43,7 +43,7 @@ class OpenCode(Adapter):
         update_provider(self.path(), self.state(home), 'providers', provider, atomic)
     def uninstall(self, home, atomic): update_provider(self.path(), self.state(home), 'providers', None, atomic, True)
     def command(self, exe, model, effort, extra):
-        return [exe, '--standalone', '--model', f'axurion/{model}#{effort}', *extra]
+        return [exe, '--standalone', *extra]
 
 class Codex(Adapter):
     pass
