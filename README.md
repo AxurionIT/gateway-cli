@@ -1,25 +1,25 @@
-# Axurion Gateway CLI · v1.1.0
+# Axurion Gateway CLI · v1.2.0-beta.1
 
 A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. It does not host models, modify the gateway, or include credentials. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
 
 ## Quick installation
 
-Requires Python 3.11+ and, for the development command, Codex CLI with support for profiles in separate files (0.134.0+). Install only on authorized machines and networks.
+Requires Python 3.11+ and OpenCode v2 for the default experience. Codex CLI 0.134.0+ is optional. Install only on authorized machines and networks.
 
-### Install via GitHub Releases (v1.1.0)
+### Install via GitHub Releases (v1.2.0-beta.1)
 
-Once the public `v1.1.0` release is published in `AxurionIT/gateway-cli`, you can install without cloning the repository. The URLs below are planned; they have not been provisioned by this package. Do not run a script you have not reviewed or whose source you do not trust. The bootstrap downloads the `.pyz` and SHA-256 checksum from the same versioned release, verifies integrity, and only then installs it. The checksum is not an independent digital signature.
+Install this experimental beta from its versioned release after publication. Do not run a script you have not reviewed or whose source you do not trust. The bootstrap downloads the `.pyz` and SHA-256 checksum from the same versioned release, verifies integrity, and only then installs it. The checksum is not an independent digital signature.
 
 **macOS / Linux (quick command):**
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/latest/download/install.sh | bash
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.1/install.sh | bash
 ```
 
 Alternative for reviewing before execution:
 
 ```sh
-curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.1.0/install.sh -o install.sh
+curl -fsSL --proto '=https' --proto-redir '=https' https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.1/install.sh -o install.sh
 # Review the file before running it.
 bash install.sh
 ```
@@ -28,7 +28,7 @@ bash install.sh
 
 ```powershell
 $installer = Join-Path $env:TEMP 'axurion-install.ps1'
-Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/latest/download/install.ps1' -OutFile $installer
+Invoke-WebRequest -Uri 'https://github.com/AxurionIT/gateway-cli/releases/download/v1.2.0-beta.1/install.ps1' -OutFile $installer
 # Review the file before running it.
 & $installer
 ```
@@ -39,7 +39,7 @@ Use `bash install.sh --no-setup` or `./install.ps1 -NoSetup` to install or updat
 
 ### Publishing a release
 
-Create the `AxurionIT/gateway-cli` repository, push the code, and publish the `v1.1.0` tag pointing to the desired commit. The `.github/workflows/release.yml` workflow runs tests and installation smoke tests on all three operating systems, validates the version, and publishes `install.sh`, `install.ps1`, `gateway-cli.pyz`, and `gateway-cli.pyz.sha256` to the GitHub Release. For new versions, update the version in `pyproject.toml`, `gateway_cli/__init__.py`, and both installers before creating the tag. Each release's scripts use a fixed package version, avoiding incompatible asset downloads if the latest release changes during installation. In a private repository, public commands do not work without authentication; prefer authenticated private distribution rather than exposing tokens in the installer. This package has not published a release.
+The release workflow tests on Linux, macOS, and Windows before publishing the tagged build and its SHA-256 checksum. Beta versions are marked as prereleases and must be installed using their versioned URLs, not `releases/latest`.
 
 ### macOS and Linux
 
@@ -85,7 +85,7 @@ Another option for developers: run `pipx install '.[secure]'` in the source fold
 
 ## Configuration
 
-The default is `http://127.0.0.1:8317/v1` for a local gateway. When the gateway is available remotely and authorized, provide the actual HTTPS URL (for example, `https://ai.axurion.com.br/v1`). HTTPS is required outside loopback. Installation does not create domains or change DNS, VPNs, certificates, or firewall settings. The remote URL is only an example and has not been verified.
+The default is `https://ai.axurion.com.br/v1`. To use a local gateway, provide its loopback URL during setup, for example `http://127.0.0.1:8317/v1`. HTTPS is required outside loopback. Installation does not create domains or change DNS, VPNs, certificates, or firewall settings. The default remote URL has not been verified in this environment.
 
 ```sh
 axurion setup
@@ -162,3 +162,16 @@ python dist/gateway-cli.pyz --version
 CI is configured for Linux, macOS, and Windows (Python 3.11 and 3.13). HTTP tests use a fake loopback server. Vault dependencies and real graphical clients require testing on each platform. No real inference requests were made during development. This version does not include automatic Codex installation, automatic remote updates, or a Homebrew/Winget package. The publishing workflow is included but must be run in the actual repository.
 
 References: [Codex advanced configuration](https://learn.chatgpt.com/docs/config-file/config-advanced), [CLIProxyAPI management v8](https://github.com/router-for-me/CLIProxyAPI/blob/main/docs/management-api-v8.md), [keyring](https://keyring.readthedocs.io/en/stable/).
+
+### Multi-harness development preview
+
+This is an experimental prerelease, not the stable v1.2.0 release. OpenCode v2 can be configured with `axurion sync opencode`, which reads `/models` without inference and manages only the `axurion` provider. Start it with `axurion` or `axurion opencode --model astra-coding --effort high`. The API key is passed in the child process environment and is not written to the OpenCode configuration. Running OpenCode directly requires `AXURION_API_KEY` in its environment. Existing unmanaged Axurion entries and JSONC configuration cause a safe refusal instead of replacement. Remove the managed provider with `axurion uninstall opencode`.
+
+OpenCode v2.3.2 provider loading, launch and reasoning payloads were tested with a simulated local gateway, not the production gateway. The provider targets the OpenCode v2 configuration format, not v1. Gateway support for reasoning routing and session affinity has not been verified. Pi can launch catalogue models with thinking disabled; when limits are unavailable Pi applies its own defaults, which must be verified against the gateway; reasoning selection is rejected until its mapping is verified. Claude Code requires an explicit Claude model and compatible Anthropic gateway; protocol compatibility is unverified. Existing Codex behavior is retained. Do not use this preview as evidence of production compatibility.
+
+### Multi-harness development status
+
+See [compatibility and external validation](docs/multi-harness.md), and the [changelog](CHANGELOG.md). These integrations are under development: a mocked
+client launch is not evidence of gateway protocol or routing compatibility.
+
+OpenCode makes a separate low-effort request to generate a session title. In a simulated test, rejecting this auxiliary request did not prevent the main high-effort answer, but actual gateway behavior and title handling are unverified. The main request retains the selected effort.

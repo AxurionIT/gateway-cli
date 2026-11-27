@@ -6,3 +6,10 @@ build/
 *.egg-info/
 .env
 *.key
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+credentials.json
+auth.json
