@@ -1,6 +1,6 @@
 # Axurion Gateway CLI · v1.2.0-beta.5
 
-A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. It does not host models, modify the gateway, or include credentials. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
+A cross-platform client for the Axurion AI Gateway, built around CLIProxyAPI and virtual models such as `astra-coding`. The server remains responsible for quota-aware routing, fallbacks, and session affinity.
 
 ## Quick installation
 
@@ -121,22 +121,22 @@ Session affinity depends on the gateway recognizing a native client session iden
 
 ## Commands
 
-| Command | Action | Inference? |
-|---|---|---|
-| `axurion setup` | Configure URL, credential, model, and profile | No |
-| `axurion login` | Change the local key | No |
-| `axurion logout` | Remove the locally stored key; does not revoke it on the server | No |
-| `axurion models` | List models from `/v1/models` | No |
-| `axurion status` | Authenticated HTTP diagnostic | No |
-| `axurion doctor` | Local Python, Codex, and credential diagnostic | No |
-| `axurion config` | Show settings without the key | No |
-| `axurion profile` | Recreate the managed profile | No |
-| `axurion usage` | Usage from this CLI's tests; dashboard link | No |
-| `axurion usage --server` | Aggregate API key counters via the v8/v0 management API | No |
-| `axurion dashboard` | Open the Axurion dashboard (requires authorized access) | No |
-| `axurion test` | Short inference with confirmation; `--yes` explicitly confirms | Yes |
-| `axurion codex` | Start Codex with the Axurion profile | Depending on use |
-| `axurion update path/to/gateway-cli.pyz` | Update from a trusted local package | No |
+| Command                                  | Action                                                          | Inference?       |
+| ---------------------------------------- | --------------------------------------------------------------- | ---------------- |
+| `axurion setup`                          | Configure URL, credential, model, and profile                   | No               |
+| `axurion login`                          | Change the local key                                            | No               |
+| `axurion logout`                         | Remove the locally stored key; does not revoke it on the server | No               |
+| `axurion models`                         | List models from `/v1/models`                                   | No               |
+| `axurion status`                         | Authenticated HTTP diagnostic                                   | No               |
+| `axurion doctor`                         | Local Python, Codex, and credential diagnostic                  | No               |
+| `axurion config`                         | Show settings without the key                                   | No               |
+| `axurion profile`                        | Recreate the managed profile                                    | No               |
+| `axurion usage`                          | Usage from this CLI's tests; dashboard link                     | No               |
+| `axurion usage --server`                 | Aggregate API key counters via the v8/v0 management API         | No               |
+| `axurion dashboard`                      | Open the Axurion dashboard (requires authorized access)         | No               |
+| `axurion test`                           | Short inference with confirmation; `--yes` explicitly confirms  | Yes              |
+| `axurion codex`                          | Start Codex with the Axurion profile                            | Depending on use |
+| `axurion update path/to/gateway-cli.pyz` | Update from a trusted local package                             | No               |
 
 `models`, `status`, and `usage` support `--json`. `setup` supports `--url`, `--model`, `--effort`, and `--storage`. Remote usage requires a separate management key, entered without echo and not persisted. Never share this key with agents; use local or private administration. The command aggregates only numeric success/failure counts, without exposing IDs that may contain secrets. The counters endpoint may not represent OAuth, all models, tokens, or quotas. The dashboard is the source for gateway metrics. `update` verifies downloaded release checksums, but does not validate an independent cryptographic signature. For pipx installations, update through pipx instead of using `update`.
 
