@@ -2,7 +2,7 @@
 # Axurion Gateway CLI bootstrap. No sudo, no policy changes.
 set -euo pipefail
 main() (
-  VERSION='1.2.0-beta.1'
+  VERSION='1.2.0-beta.2'
   BASE="https://github.com/AxurionIT/gateway-cli/releases/download/v${VERSION}"
   PYTHON="${PYTHON:-python3}"
   offline=false; setup=true

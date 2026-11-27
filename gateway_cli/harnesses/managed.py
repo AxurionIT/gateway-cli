@@ -2,6 +2,7 @@
 import hashlib
 import json
 import time
+from . import jsonc
 from pathlib import Path
 
 
@@ -11,7 +12,7 @@ def digest(value):
 
 def read_json(path):
     if not path.exists(): return {}
-    obj = json.loads(path.read_text(encoding='utf-8-sig'))
+    obj = jsonc.loads(path.read_text(encoding='utf-8-sig')) if path.suffix == '.jsonc' else json.loads(path.read_text(encoding='utf-8-sig'))
     if not isinstance(obj, dict): raise ValueError(f'Configuração não é um objeto JSON: {path}')
     return obj
 
@@ -40,11 +41,16 @@ def update_provider(path, state_path, section, provider, atomic, remove=False):
         if current == provider: return
         entries['axurion'] = provider
     doc[section] = entries
+    source = path.read_text(encoding='utf-8') if path.exists() else '{}'
+    output = jsonc.edit(source, section, provider, remove)
+    # Validate before changing either receipt or file, retaining strict JSON rules.
+    if path.suffix == '.jsonc': jsonc.loads(output)
+    else: json.loads(output.lstrip('\ufeff'))
     if path.exists(): atomic(path.with_name(path.name + f'.axurion.{time.time_ns()}.bak'), path.read_bytes())
     # A pending receipt recognizes both old and new states after interruption.
     # Never use it to overwrite anything except those exact known states.
     if not remove:
         atomic(state_path, json.dumps({'digest': digest(provider), 'previous_digest': prior}) + '\n')
-    atomic(path, json.dumps(doc, indent=2, ensure_ascii=False) + '\n')
+    atomic(path, output)
     if remove: state_path.unlink(missing_ok=True)
     else: atomic(state_path, json.dumps({'digest': digest(provider)}) + '\n')
